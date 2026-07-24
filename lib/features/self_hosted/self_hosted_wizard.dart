@@ -5,22 +5,70 @@ class SelfHostedWizard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    final scheme = Theme.of(context).colorScheme;
+
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Self-hosted wizard',
+            const Text(
+              'Self-hosted setup',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
-            SizedBox(height: 8),
-            Text('Wizard placeholder for provisioning flow.'),
-            SizedBox(height: 12),
-            _StepRow(number: '1', text: 'Choose deployment type'),
-            _StepRow(number: '2', text: 'Confirm server parameters'),
-            _StepRow(number: '3', text: 'Generate connection profile'),
+            const SizedBox(height: 6),
+            Text(
+              'Start server setup from here. This is UI-only for now, but the flow is ready for the core service later.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                FilledButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Start setup'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.description_outlined),
+                  label: const Text('Paste config'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: const [
+                _ProtocolChip(label: 'AmneziaWG'),
+                _ProtocolChip(label: 'XRay / VLESS'),
+                _ProtocolChip(label: 'WireGuard'),
+                _ProtocolChip(label: 'Hysteria2'),
+                _ProtocolChip(label: 'Custom'),
+              ],
+            ),
+            const SizedBox(height: 18),
+            _FlowCard(
+              number: '1',
+              title: 'Connect to server',
+              subtitle: 'Enter IP, SSH user, and password or key.',
+              accent: scheme.primary,
+            ),
+            _FlowCard(
+              number: '2',
+              title: 'Choose install mode',
+              subtitle: 'Automatic for quick start or manual for a single protocol.',
+              accent: scheme.secondary,
+            ),
+            _FlowCard(
+              number: '3',
+              title: 'Install protocol and generate profile',
+              subtitle: 'Create the connection and show it in the main screen.',
+              accent: scheme.tertiary,
+            ),
           ],
         ),
       ),
@@ -28,26 +76,68 @@ class SelfHostedWizard extends StatelessWidget {
   }
 }
 
-class _StepRow extends StatelessWidget {
+class _FlowCard extends StatelessWidget {
   final String number;
-  final String text;
+  final String title;
+  final String subtitle;
+  final Color accent;
 
-  const _StepRow({
+  const _FlowCard({
     required this.number,
-    required this.text,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          CircleAvatar(radius: 11, child: Text(number)),
-          SizedBox(width: 10),
-          Expanded(child: Text(text)),
-        ],
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: accent.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: accent.withOpacity(0.28)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 13,
+                backgroundColor: accent.withOpacity(0.18),
+                child: Text(number),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(subtitle),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+}
+
+class _ProtocolChip extends StatelessWidget {
+  final String label;
+
+  const _ProtocolChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(label: Text(label));
   }
 }
