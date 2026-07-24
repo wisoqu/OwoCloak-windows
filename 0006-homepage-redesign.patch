@@ -1,0 +1,582 @@
+--- a/lib/features/home/home_page.dart
++++ b/lib/features/home/home_page.dart
+@@ -1,6 +1,5 @@
+ 
+ import 'package:flutter/material.dart';
+-import '../../core/models/connection_strategy.dart';
+ import '../account/account_section.dart';
+ import '../advanced/advanced_mode_page.dart';
+ import '../simple/simple_mode_page.dart';
+@@ -19,69 +18,517 @@
+ 
+   @override
+   Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++
+     return Scaffold(
++      backgroundColor: scheme.surface,
+       body: SafeArea(
+-        child: Padding(
+-          padding: const EdgeInsets.all(20),
+-          child: Column(
+-            crossAxisAlignment: CrossAxisAlignment.stretch,
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.stretch,
++          children: [
++            _TitleBar(
++              mode: _mode,
++              onModeChanged: (mode) => setState(() => _mode = mode),
++            ),
++            _ModeStrip(
++              mode: _mode,
++              onModeChanged: (mode) => setState(() => _mode = mode),
++            ),
++            Expanded(
++              child: LayoutBuilder(
++                builder: (context, constraints) {
++                  final showSidebar = constraints.maxWidth >= 1160;
++                  final mainContent = _MainPanel(
++                    mode: _mode,
++                    child: AnimatedSwitcher(
++                      duration: const Duration(milliseconds: 220),
++                      child: _mode == AppMode.simple
++                          ? const SimpleModePage(key: ValueKey('simple'))
++                          : const AdvancedModePage(key: ValueKey('advanced')),
++                    ),
++                  );
++
++                  if (!showSidebar) {
++                    return SingleChildScrollView(
++                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
++                      child: Column(
++                        crossAxisAlignment: CrossAxisAlignment.stretch,
++                        children: [
++                          mainContent,
++                          const SizedBox(height: 16),
++                          const _Sidebar(),
++                        ],
++                      ),
++                    );
++                  }
++
++                  return Padding(
++                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
++                    child: Row(
++                      crossAxisAlignment: CrossAxisAlignment.stretch,
++                      children: [
++                        Expanded(child: mainContent),
++                        const SizedBox(width: 16),
++                        const SizedBox(
++                          width: 342,
++                          child: _Sidebar(),
++                        ),
++                      ],
++                    ),
++                  );
++                },
++              ),
++            ),
++            const _StatusBar(),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _TitleBar extends StatelessWidget {
++  final AppMode mode;
++  final ValueChanged<AppMode> onModeChanged;
++
++  const _TitleBar({
++    required this.mode,
++    required this.onModeChanged,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    final connected = mode == AppMode.simple;
++
++    return Container(
++      height: 36,
++      decoration: BoxDecoration(
++        color: scheme.surface,
++        border: Border(bottom: BorderSide(color: scheme.outline)),
++      ),
++      padding: const EdgeInsets.only(left: 12, right: 8),
++      child: Row(
++        children: [
++          Container(
++            width: 14,
++            height: 14,
++            decoration: BoxDecoration(
++              borderRadius: BorderRadius.circular(3),
++              gradient: LinearGradient(
++                colors: [scheme.primary, scheme.primary.withOpacity(0.55)],
++                begin: Alignment.topLeft,
++                end: Alignment.bottomRight,
++              ),
++            ),
++          ),
++          const SizedBox(width: 8),
++          const Text(
++            'OwOCloak',
++            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
++          ),
++          const SizedBox(width: 10),
++          Text(
++            'Windows client',
++            style: TextStyle(
++              fontSize: 10.5,
++              color: scheme.onSurfaceVariant,
++              fontFamily: 'Consolas',
++            ),
++          ),
++          const Spacer(),
++          _Pill(
++            text: connected ? 'Prepared' : 'Ready',
++            active: connected,
++          ),
++          const SizedBox(width: 8),
++          _WinButton(icon: Icons.horizontal_rule, title: 'Свернуть'),
++          _WinButton(icon: Icons.crop_square, title: 'Развернуть'),
++          _WinButton(icon: Icons.close, title: 'Закрыть', close: true),
++        ],
++      ),
++    );
++  }
++}
++
++class _ModeStrip extends StatelessWidget {
++  final AppMode mode;
++  final ValueChanged<AppMode> onModeChanged;
++
++  const _ModeStrip({
++    required this.mode,
++    required this.onModeChanged,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    final simpleSelected = mode == AppMode.simple;
++
++    return Container(
++      height: 54,
++      decoration: BoxDecoration(
++        color: scheme.surface,
++        border: Border(bottom: BorderSide(color: scheme.outline)),
++      ),
++      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
++      child: Row(
++        children: [
++          _ModeButton(
++            label: 'Простой',
++            active: simpleSelected,
++            accent: scheme.primary,
++            onTap: () => onModeChanged(AppMode.simple),
++          ),
++          const SizedBox(width: 6),
++          _ModeButton(
++            label: 'Продвинутый',
++            active: !simpleSelected,
++            accent: scheme.secondary,
++            onTap: () => onModeChanged(AppMode.advanced),
++          ),
++          const Spacer(),
++          Text(
++            simpleSelected
++                ? 'Главная кнопка · стратегия · быстрый старт'
++                : 'Профили · self-hosted · серверы · split tunneling',
++            style: TextStyle(
++              fontSize: 11.5,
++              color: scheme.onSurfaceVariant,
++              fontFamily: 'Consolas',
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _MainPanel extends StatelessWidget {
++  final AppMode mode;
++  final Widget child;
++
++  const _MainPanel({
++    required this.mode,
++    required this.child,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++
++    return Container(
++      decoration: BoxDecoration(
++        color: scheme.surface,
++        borderRadius: BorderRadius.circular(10),
++        border: Border.all(color: scheme.outline),
++      ),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.stretch,
++        children: [
++          _PanelHeader(mode: mode),
++          const Divider(height: 1),
++          Expanded(
++            child: ClipRRect(
++              borderRadius: BorderRadius.circular(10),
++              child: child,
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _PanelHeader extends StatelessWidget {
++  final AppMode mode;
++
++  const _PanelHeader({required this.mode});
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    final title = mode == AppMode.simple ? 'Simple mode' : 'Advanced mode';
++    final subtitle = mode == AppMode.simple
++        ? 'One button for casual users. Traffic-based routing is available, but never in the way.'
++        : 'Choose servers, start setup flows, and fine-tune the connection before you connect.';
++
++    return Padding(
++      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
++      child: Row(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Container(
++            width: 3,
++            height: 28,
++            margin: const EdgeInsets.only(top: 2),
++            color: mode == AppMode.simple ? scheme.primary : scheme.secondary,
++          ),
++          const SizedBox(width: 12),
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                Text(
++                  title,
++                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
++                ),
++                const SizedBox(height: 5),
++                Text(
++                  subtitle,
++                  style: TextStyle(
++                    fontSize: 12,
++                    color: scheme.onSurfaceVariant,
++                  ),
++                ),
++              ],
++            ),
++          ),
++          const SizedBox(width: 16),
++          _InfoBadge(
++            label: mode == AppMode.simple ? 'Quick connect' : 'Manual control',
++            accent: mode == AppMode.simple ? scheme.primary : scheme.secondary,
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _Sidebar extends StatelessWidget {
++  const _Sidebar();
++
++  @override
++  Widget build(BuildContext context) {
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.stretch,
++      children: const [
++        _QuickSummaryCard(),
++        SizedBox(height: 16),
++        AccountSection(),
++      ],
++    );
++  }
++}
++
++class _QuickSummaryCard extends StatelessWidget {
++  const _QuickSummaryCard();
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++
++    return Container(
++      decoration: BoxDecoration(
++        color: scheme.surface,
++        borderRadius: BorderRadius.circular(10),
++        border: Border.all(color: scheme.outline),
++      ),
++      padding: const EdgeInsets.all(16),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          const Text(
++            'Workspace',
++            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
++          ),
++          const SizedBox(height: 10),
++          _KeyValue(label: 'Build', value: '0.9.2-dev'),
++          _KeyValue(label: 'Profile', value: 'OwONaive'),
++          _KeyValue(label: 'Latency', value: '41 ms'),
++          _KeyValue(label: 'Server', value: 'Germany / Warsaw'),
++          const SizedBox(height: 12),
++          Row(
+             children: [
+-              _TopBar(
+-                mode: _mode,
+-                onModeChanged: (mode) => setState(() => _mode = mode),
+-              ),
+-              const SizedBox(height: 20),
+               Expanded(
+-                child: AnimatedSwitcher(
+-                  duration: const Duration(milliseconds: 220),
+-                  child: _mode == AppMode.simple
+-                      ? const SimpleModePage(key: ValueKey('simple'))
+-                      : const AdvancedModePage(key: ValueKey('advanced')),
++                child: FilledButton.tonal(
++                  onPressed: () {},
++                  child: const Text('Open settings'),
+                 ),
+               ),
+-              const SizedBox(height: 16),
+-              const AccountSection(),
++              const SizedBox(width: 10),
++              Expanded(
++                child: OutlinedButton(
++                  onPressed: () {},
++                  child: const Text('Export'),
++                ),
++              ),
+             ],
+           ),
++        ],
++      ),
++    );
++  }
++}
++
++class _KeyValue extends StatelessWidget {
++  final String label;
++  final String value;
++
++  const _KeyValue({
++    required this.label,
++    required this.value,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return Padding(
++      padding: const EdgeInsets.only(bottom: 7),
++      child: Row(
++        children: [
++          SizedBox(
++            width: 72,
++            child: Text(
++              label,
++              style: TextStyle(
++                color: scheme.onSurfaceVariant,
++                fontSize: 11.5,
++              ),
++            ),
++          ),
++          Expanded(
++            child: Text(
++              value,
++              style: const TextStyle(fontFamily: 'Consolas', fontSize: 11.5),
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _ModeButton extends StatelessWidget {
++  final String label;
++  final bool active;
++  final Color accent;
++  final VoidCallback onTap;
++
++  const _ModeButton({
++    required this.label,
++    required this.active,
++    required this.accent,
++    required this.onTap,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++
++    return InkWell(
++      onTap: onTap,
++      borderRadius: BorderRadius.circular(8),
++      child: AnimatedContainer(
++        duration: const Duration(milliseconds: 150),
++        curve: Curves.easeOut,
++        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
++        decoration: BoxDecoration(
++          color: active ? accent.withOpacity(0.15) : scheme.surfaceContainerHighest,
++          borderRadius: BorderRadius.circular(8),
++          border: Border.all(
++            color: active ? accent.withOpacity(0.28) : scheme.outline,
++          ),
+         ),
+-      ),
+-    );
+-  }
+-}
+-
+-class _TopBar extends StatelessWidget {
+-  final AppMode mode;
+-  final ValueChanged<AppMode> onModeChanged;
+-
+-  const _TopBar({
+-    required this.mode,
+-    required this.onModeChanged,
+-  });
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return Row(
+-      children: [
+-        const Text(
+-          'OwOCloak',
+-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
++        child: Text(
++          label,
++          style: TextStyle(
++            fontSize: 12,
++            fontWeight: FontWeight.w700,
++            color: active ? accent : scheme.onSurfaceVariant,
++          ),
+         ),
+-        const Spacer(),
+-        SegmentedButton<AppMode>(
+-          segments: const [
+-            ButtonSegment(
+-              value: AppMode.simple,
+-              label: Text('Простой'),
+-            ),
+-            ButtonSegment(
+-              value: AppMode.advanced,
+-              label: Text('Продвинутый'),
+-            ),
+-          ],
+-          selected: {mode},
+-          onSelectionChanged: (values) => onModeChanged(values.first),
++      ),
++    );
++  }
++}
++
++class _InfoBadge extends StatelessWidget {
++  final String label;
++  final Color accent;
++
++  const _InfoBadge({
++    required this.label,
++    required this.accent,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    return Container(
++      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
++      decoration: BoxDecoration(
++        color: accent.withOpacity(0.12),
++        borderRadius: BorderRadius.circular(999),
++        border: Border.all(color: accent.withOpacity(0.28)),
++      ),
++      child: Text(
++        label,
++        style: TextStyle(
++          fontSize: 10.5,
++          color: accent,
++          fontWeight: FontWeight.w700,
+         ),
+-      ],
+-    );
+-  }
+-}
++      ),
++    );
++  }
++}
++
++class _Pill extends StatelessWidget {
++  final String text;
++  final bool active;
++
++  const _Pill({
++    required this.text,
++    required this.active,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return Container(
++      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
++      decoration: BoxDecoration(
++        color: active ? scheme.primary.withOpacity(0.12) : scheme.surfaceContainerHighest,
++        borderRadius: BorderRadius.circular(999),
++        border: Border.all(color: active ? scheme.primary.withOpacity(0.28) : scheme.outline),
++      ),
++      child: Text(
++        text,
++        style: TextStyle(
++          fontSize: 10.5,
++          fontFamily: 'Consolas',
++          color: active ? scheme.primary : scheme.onSurfaceVariant,
++        ),
++      ),
++    );
++  }
++}
++
++class _WinButton extends StatelessWidget {
++  final IconData icon;
++  final String title;
++  final bool close;
++
++  const _WinButton({
++    required this.icon,
++    required this.title,
++    this.close = false,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return SizedBox(
++      width: 40,
++      height: 28,
++      child: IconButton(
++        onPressed: null,
++        tooltip: title,
++        icon: Icon(icon, size: 12),
++        color: close ? scheme.error : scheme.onSurfaceVariant,
++        padding: EdgeInsets.zero,
++        visualDensity: VisualDensity.compact,
++      ),
++    );
++  }
++}

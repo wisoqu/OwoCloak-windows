@@ -11,7 +11,7 @@ class AppTheme {
         brightness: Brightness.dark,
         surface: const Color(0xFF11172A),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: const Color(0xFF11172A),
         elevation: 0,
         shape: RoundedRectangleBorder(

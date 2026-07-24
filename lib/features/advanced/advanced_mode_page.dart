@@ -147,11 +147,11 @@ class _ModeCard extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: selected
-              ? scheme.primary.withOpacity(0.12)
-              : scheme.surfaceContainerHighest.withOpacity(0.55),
+              ? scheme.primary.withValues(alpha: 0.12)
+              : scheme.surfaceContainerHighest.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? scheme.primary.withOpacity(0.35) : Colors.white12,
+            color: selected ? scheme.primary.withValues(alpha: 0.35) : Colors.white12,
           ),
         ),
         child: Column(
@@ -241,11 +241,11 @@ class _ServerTile extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: selected
-              ? scheme.primary.withOpacity(0.10)
-              : scheme.surfaceContainerHighest.withOpacity(0.55),
+              ? scheme.primary.withValues(alpha: 0.10)
+              : scheme.surfaceContainerHighest.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: selected ? scheme.primary.withOpacity(0.35) : Colors.white12,
+            color: selected ? scheme.primary.withValues(alpha: 0.35) : Colors.white12,
           ),
         ),
         child: Row(
@@ -413,10 +413,10 @@ class _Badge extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.16),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.30),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.30),
         ),
       ),
       child: Padding(

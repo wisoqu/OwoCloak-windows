@@ -1,0 +1,1166 @@
+--- a/lib/app/theme/app_theme.dart
++++ b/lib/app/theme/app_theme.dart
+@@ -3,27 +3,42 @@
+ class AppTheme {
+   static ThemeData dark() {
+     final base = ThemeData.dark(useMaterial3: true);
++    final scheme = ColorScheme.fromSeed(
++      seedColor: const Color(0xFF4FD1C5),
++      brightness: Brightness.dark,
++    ).copyWith(
++      surface: const Color(0xFF15181D),
++      surfaceContainerHighest: const Color(0xFF1B1F26),
++      outline: const Color(0xFF262B33),
++      secondary: const Color(0xFFE8A33D),
++      tertiary: const Color(0xFFE8615A),
++      error: const Color(0xFFE8615A),
++    );
+ 
+     return base.copyWith(
+-      scaffoldBackgroundColor: const Color(0xFF0B1020),
+-      colorScheme: ColorScheme.fromSeed(
+-        seedColor: const Color(0xFF35D0C8),
+-        brightness: Brightness.dark,
+-        surface: const Color(0xFF11172A),
+-      ),
++      colorScheme: scheme,
++      scaffoldBackgroundColor: const Color(0xFF0D0F12),
+       cardTheme: CardTheme(
+-        color: const Color(0xFF11172A),
++        color: scheme.surface,
+         elevation: 0,
+         shape: RoundedRectangleBorder(
+-          borderRadius: BorderRadius.circular(24),
+-          side: const BorderSide(color: Color(0x22FFFFFF)),
++          borderRadius: BorderRadius.circular(10),
++          side: BorderSide(color: scheme.outline),
+         ),
+       ),
++      dividerTheme: DividerThemeData(color: scheme.outline),
+       appBarTheme: const AppBarTheme(
+-        backgroundColor: Color(0xFF0B1020),
++        backgroundColor: Color(0xFF0D0F12),
+         foregroundColor: Colors.white,
+         centerTitle: false,
++        elevation: 0,
+       ),
++      textTheme: base.textTheme.apply(
++        fontFamily: 'Segoe UI',
++        bodyColor: scheme.onSurface,
++        displayColor: scheme.onSurface,
++      ),
++      fontFamily: 'Segoe UI',
+     );
+   }
+ }
+
+
+--- a/lib/features/home/home_page.dart
++++ b/lib/features/home/home_page.dart
+@@ -1,6 +1,5 @@
+ import 'package:flutter/material.dart';
+-import '../../core/models/connection_strategy.dart';
+-import '../account/account_section.dart';
++import '../../core/models/connection_snapshot.dart';
+ import '../advanced/advanced_mode_page.dart';
+ import '../simple/simple_mode_page.dart';
+ 
+@@ -15,72 +14,365 @@
+ 
+ class _HomePageState extends State<HomePage> {
+   AppMode _mode = AppMode.simple;
+-
+-  @override
+-  Widget build(BuildContext context) {
++  bool _connected = false;
++  ConnectionSnapshot _snapshot = const ConnectionSnapshot(
++    connected: false,
++    statusText: 'ОТКЛЮЧЕНО',
++    profileText: 'OwONaive',
++    latencyText: '41 ms',
++  );
++
++  void _setSnapshot(ConnectionSnapshot snapshot) {
++    setState(() {
++      _snapshot = snapshot;
++      _connected = snapshot.connected;
++    });
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++
+     return Scaffold(
++      backgroundColor: scheme.surface,
+       body: SafeArea(
+-        child: Padding(
+-          padding: const EdgeInsets.all(20),
+-          child: Column(
+-            crossAxisAlignment: CrossAxisAlignment.stretch,
+-            children: [
+-              _TopBar(
+-                mode: _mode,
+-                onModeChanged: (mode) => setState(() => _mode = mode),
+-              ),
+-              const SizedBox(height: 20),
+-              Expanded(
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.stretch,
++          children: [
++            _TitleBar(connected: _connected),
++            _ModeRow(
++              mode: _mode,
++              connected: _connected,
++              statusText: _snapshot.statusText,
++              onModeChanged: (mode) => setState(() => _mode = mode),
++            ),
++            Expanded(
++              child: Container(
++                decoration: BoxDecoration(
++                  color: scheme.surface,
++                  border: Border(top: BorderSide(color: scheme.outline)),
++                ),
+                 child: AnimatedSwitcher(
+                   duration: const Duration(milliseconds: 220),
+                   child: _mode == AppMode.simple
+-                      ? const SimpleModePage(key: ValueKey('simple'))
++                      ? SimpleModePage(
++                          key: const ValueKey('simple'),
++                          onSnapshotChanged: _setSnapshot,
++                        )
+                       : const AdvancedModePage(key: ValueKey('advanced')),
+                 ),
+               ),
+-              const SizedBox(height: 16),
+-              const AccountSection(),
++            ),
++            _StatusBar(mode: _mode, snapshot: _snapshot),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _TitleBar extends StatelessWidget {
++  final bool connected;
++
++  const _TitleBar({required this.connected});
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++
++    return Container(
++      height: 36,
++      decoration: BoxDecoration(
++        color: scheme.surface,
++        border: Border(bottom: BorderSide(color: scheme.outline)),
++      ),
++      padding: const EdgeInsets.only(left: 12, right: 8),
++      child: Row(
++        children: [
++          Container(
++            width: 14,
++            height: 14,
++            decoration: BoxDecoration(
++              borderRadius: BorderRadius.circular(3),
++              gradient: LinearGradient(
++                colors: [scheme.primary, scheme.primary.withOpacity(0.55)],
++                begin: Alignment.topLeft,
++                end: Alignment.bottomRight,
++              ),
++            ),
++          ),
++          const SizedBox(width: 8),
++          const Text(
++            'OwOCloak',
++            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
++          ),
++          const Spacer(),
++          Container(
++            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
++            decoration: BoxDecoration(
++              color: connected
++                  ? scheme.primary.withOpacity(0.12)
++                  : scheme.surfaceContainerHighest,
++              borderRadius: BorderRadius.circular(999),
++              border: Border.all(
++                color: connected ? scheme.primary.withOpacity(0.28) : scheme.outline,
++              ),
++            ),
++            child: Text(
++              connected ? 'Подключено' : 'Отключено',
++              style: TextStyle(
++                fontSize: 10,
++                color: connected ? scheme.primary : scheme.onSurfaceVariant,
++              ),
++            ),
++          ),
++          const SizedBox(width: 8),
++          _WinButton(icon: Icons.horizontal_rule, title: 'Свернуть'),
++          _WinButton(icon: Icons.crop_square, title: 'Развернуть'),
++          _WinButton(icon: Icons.close, title: 'Закрыть', close: true),
++        ],
++      ),
++    );
++  }
++}
++
++class _WinButton extends StatelessWidget {
++  final IconData icon;
++  final String title;
++  final bool close;
++
++  const _WinButton({
++    required this.icon,
++    required this.title,
++    this.close = false,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return SizedBox(
++      width: 40,
++      height: 28,
++      child: IconButton(
++        onPressed: null,
++        tooltip: title,
++        icon: Icon(icon, size: 12),
++        color: close ? scheme.error : scheme.onSurfaceVariant,
++        padding: EdgeInsets.zero,
++        visualDensity: VisualDensity.compact,
++      ),
++    );
++  }
++}
++
++class _ModeRow extends StatelessWidget {
++  final AppMode mode;
++  final bool connected;
++  final String statusText;
++  final ValueChanged<AppMode> onModeChanged;
++
++  const _ModeRow({
++    required this.mode,
++    required this.connected,
++    required this.statusText,
++    required this.onModeChanged,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++
++    return Container(
++      height: 52,
++      decoration: BoxDecoration(
++        color: scheme.surface,
++        border: Border(bottom: BorderSide(color: scheme.outline)),
++      ),
++      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
++      child: Row(
++        children: [
++          _ModeButton(
++            label: 'Простой',
++            selected: mode == AppMode.simple,
++            accent: scheme.primary,
++            onTap: () => onModeChanged(AppMode.simple),
++          ),
++          const SizedBox(width: 4),
++          _ModeButton(
++            label: 'Продвинутый',
++            selected: mode == AppMode.advanced,
++            accent: scheme.secondary,
++            onTap: () => onModeChanged(AppMode.advanced),
++          ),
++          const Spacer(),
++          _StatusPill(
++            connected: connected,
++            text: statusText,
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _ModeButton extends StatelessWidget {
++  final String label;
++  final bool selected;
++  final Color accent;
++  final VoidCallback onTap;
++
++  const _ModeButton({
++    required this.label,
++    required this.selected,
++    required this.accent,
++    required this.onTap,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return InkWell(
++      onTap: onTap,
++      borderRadius: BorderRadius.circular(8),
++      child: AnimatedContainer(
++        duration: const Duration(milliseconds: 150),
++        curve: Curves.easeOut,
++        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
++        decoration: BoxDecoration(
++          color: selected ? accent.withOpacity(0.15) : scheme.surfaceContainerHighest,
++          borderRadius: BorderRadius.circular(8),
++          border: Border.all(
++            color: selected ? accent.withOpacity(0.25) : scheme.outline,
++          ),
++        ),
++        child: Text(
++          label,
++          style: TextStyle(
++            fontSize: 12,
++            fontWeight: FontWeight.w600,
++            color: selected ? accent : scheme.onSurfaceVariant,
++          ),
++        ),
++      ),
++    );
++  }
++}
++
++class _StatusPill extends StatelessWidget {
++  final bool connected;
++  final String text;
++
++  const _StatusPill({
++    required this.connected,
++    required this.text,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return Container(
++      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
++      decoration: BoxDecoration(
++        color: connected ? scheme.primary.withOpacity(0.12) : scheme.surfaceContainerHighest,
++        borderRadius: BorderRadius.circular(999),
++        border: Border.all(
++          color: connected ? scheme.primary.withOpacity(0.32) : scheme.outline,
++        ),
++      ),
++      child: Row(
++        mainAxisSize: MainAxisSize.min,
++        children: [
++          Icon(
++            Icons.circle,
++            size: 8,
++            color: connected ? scheme.primary : scheme.onSurfaceVariant,
++          ),
++          const SizedBox(width: 8),
++          Text(
++            text,
++            style: TextStyle(
++              fontFamily: 'Consolas',
++              fontSize: 10.5,
++              color: connected ? scheme.primary : scheme.onSurfaceVariant,
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _StatusBar extends StatelessWidget {
++  final AppMode mode;
++  final ConnectionSnapshot snapshot;
++
++  const _StatusBar({
++    required this.mode,
++    required this.snapshot,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return Container(
++      height: 26,
++      decoration: BoxDecoration(
++        color: scheme.surface,
++        border: Border(top: BorderSide(color: scheme.outline)),
++      ),
++      padding: const EdgeInsets.symmetric(horizontal: 14),
++      child: Row(
++        mainAxisAlignment: MainAxisAlignment.spaceBetween,
++        children: [
++          Text(
++            'v0.9.2-dev',
++            style: TextStyle(
++              fontFamily: 'Consolas',
++              fontSize: 10.5,
++              color: scheme.onSurfaceVariant,
++            ),
++          ),
++          Row(
++            children: [
++              Text(
++                'Профиль: ${snapshot.profileText}',
++                style: TextStyle(
++                  fontFamily: 'Consolas',
++                  fontSize: 10.5,
++                  color: scheme.onSurfaceVariant,
++                ),
++              ),
++              const SizedBox(width: 14),
++              Text(
++                'Сигнал: ${snapshot.latencyText}',
++                style: TextStyle(
++                  fontFamily: 'Consolas',
++                  fontSize: 10.5,
++                  color: scheme.onSurfaceVariant,
++                ),
++              ),
++              const SizedBox(width: 14),
++              Text(
++                'Режим: ${mode == AppMode.simple ? 'простой' : 'продвинутый'}',
++                style: TextStyle(
++                  fontFamily: 'Consolas',
++                  fontSize: 10.5,
++                  color: scheme.onSurfaceVariant,
++                ),
++              ),
++              const SizedBox(width: 14),
++              Text(
++                'сборка проверена ✓',
++                style: TextStyle(
++                  fontFamily: 'Consolas',
++                  fontSize: 10.5,
++                  color: scheme.onSurfaceVariant,
++                ),
++              ),
+             ],
+           ),
+-        ),
+-      ),
+-    );
+-  }
+-}
+-
+-class _TopBar extends StatelessWidget {
+-  final AppMode mode;
+-  final ValueChanged<AppMode> onModeChanged;
+-
+-  const _TopBar({
+-    required this.mode,
+-    required this.onModeChanged,
+-  });
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return Row(
+-      children: [
+-        const Text(
+-          'OwOCloak',
+-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+-        ),
+-        const Spacer(),
+-        SegmentedButton<AppMode>(
+-          segments: const [
+-            ButtonSegment(
+-              value: AppMode.simple,
+-              label: Text('Простой'),
+-            ),
+-            ButtonSegment(
+-              value: AppMode.advanced,
+-              label: Text('Продвинутый'),
+-            ),
+-          ],
+-          selected: {mode},
+-          onSelectionChanged: (values) => onModeChanged(values.first),
+-        ),
+-      ],
+-    );
+-  }
+-}
++        ],
++      ),
++    );
++  }
++}
+
+--- a/lib/features/simple/simple_mode_page.dart
++++ b/lib/features/simple/simple_mode_page.dart
+@@ -4,151 +4,246 @@
+ import '../../core/models/connection_strategy.dart';
+ 
+ class SimpleModePage extends StatefulWidget {
+-  const SimpleModePage({super.key});
++  final ValueChanged<ConnectionSnapshot>? onSnapshotChanged;
++
++  const SimpleModePage({
++    super.key,
++    this.onSnapshotChanged,
++  });
+ 
+   @override
+   State<SimpleModePage> createState() => _SimpleModePageState();
+ }
+ 
+ class _SimpleModePageState extends State<SimpleModePage> {
+-  bool _connected = false;
++  bool _connected = true;
+   ConnectionStrategy _strategy = ConnectionStrategy.auto;
++
++  @override
++  void initState() {
++    super.initState();
++    _emitSnapshot();
++  }
++
++  void _emitSnapshot() {
++    widget.onSnapshotChanged?.call(
++      ConnectionSnapshot(
++        connected: _connected,
++        statusText: _connected ? 'СОЕДИНЕНО' : 'ОТКЛЮЧЕНО',
++        profileText: _profileLabel(_strategy),
++        latencyText: _latencyLabel(_strategy),
++      ),
++    );
++  }
++
++  String _profileLabel(ConnectionStrategy strategy) {
++    return switch (strategy) {
++      ConnectionStrategy.auto => 'OwONaive',
++      ConnectionStrategy.games => 'OwOGames',
++      ConnectionStrategy.video => 'OwOVideo',
++      ConnectionStrategy.stream => 'OwOStream',
++    };
++  }
++
++  String _latencyLabel(ConnectionStrategy strategy) {
++    return switch (strategy) {
++      ConnectionStrategy.auto => '41 ms',
++      ConnectionStrategy.games => '29 ms',
++      ConnectionStrategy.video => '55 ms',
++      ConnectionStrategy.stream => '47 ms',
++    };
++  }
++
++  String _serverLine(ConnectionStrategy strategy) {
++    return switch (strategy) {
++      ConnectionStrategy.auto => 'Авто · Германия',
++      ConnectionStrategy.games => 'Игры · Польша',
++      ConnectionStrategy.video => 'Видео · Германия',
++      ConnectionStrategy.stream => 'Stream · Нидерланды',
++    };
++  }
+ 
+   @override
+   Widget build(BuildContext context) {
+     final scheme = Theme.of(context).colorScheme;
+ 
+-    return Card(
+-      child: Padding(
+-        padding: const EdgeInsets.all(24),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.stretch,
+-          children: [
+-            Row(
+-              children: [
+-                const Column(
+-                  crossAxisAlignment: CrossAxisAlignment.start,
+-                  children: [
+-                    Text(
+-                      'Simple mode',
+-                      style:
+-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+-                    ),
+-                    SizedBox(height: 4),
+-                    Text('One button for casual users.'),
+-                  ],
+-                ),
+-                const Spacer(),
+-                _StatusPill(
+-                  label: _connected ? 'Connected' : 'Disconnected',
+-                  isActive: _connected,
+-                ),
+-              ],
+-            ),
+-            const SizedBox(height: 20),
+-            Expanded(
+-              child: Center(
+-                child: AnimatedContainer(
+-                  duration: const Duration(milliseconds: 180),
+-                  curve: Curves.easeOut,
+-                  width: 260,
+-                  height: 260,
+-                  decoration: BoxDecoration(
+-                    shape: BoxShape.circle,
+-                    gradient: LinearGradient(
+-                      colors: _connected
+-                          ? [
+-                              scheme.primary.withOpacity(0.95),
+-                              scheme.secondary.withOpacity(0.90),
+-                            ]
+-                          : [
+-                              scheme.surfaceContainerHighest.withOpacity(0.95),
+-                              scheme.surfaceContainerHighest.withOpacity(0.55),
+-                            ],
+-                      begin: Alignment.topLeft,
+-                      end: Alignment.bottomRight,
+-                    ),
+-                    border: Border.all(
+-                      color: _connected
+-                          ? scheme.primary.withOpacity(0.35)
+-                          : Colors.white12,
+-                      width: 1,
+-                    ),
+-                    boxShadow: [
+-                      BoxShadow(
+-                        blurRadius: 28,
+-                        spreadRadius: 1,
+-                        offset: const Offset(0, 12),
+-                        color: Colors.black.withOpacity(0.30),
+-                      ),
+-                    ],
+-                  ),
+-                  child: Center(
+-                    child: FilledButton.tonalIcon(
+-                      onPressed: () => setState(() => _connected = !_connected),
+-                      icon: Icon(_connected ? Icons.link_off : Icons.lock_open),
+-                      label: Text(_connected ? 'Disconnect' : 'Connect'),
+-                      style: FilledButton.styleFrom(
+-                        padding: const EdgeInsets.symmetric(
+-                          horizontal: 26,
+-                          vertical: 18,
+-                        ),
+-                        textStyle: const TextStyle(
+-                          fontSize: 18,
+-                          fontWeight: FontWeight.w700,
+-                        ),
+-                      ),
+-                    ),
+-                  ),
+-                ),
+-              ),
+-            ),
+-            const SizedBox(height: 20),
+-            Text(
+-              'Connection strategy',
+-              style: Theme.of(context).textTheme.titleMedium,
+-            ),
+-            const SizedBox(height: 8),
+-            Wrap(
+-              spacing: 8,
+-              runSpacing: 8,
+-              children: MockData.strategies
+-                  .map(
+-                    (strategy) => ChoiceChip(
+-                      label: Text(strategy.label),
+-                      selected: _strategy == strategy,
+-                      onSelected: (_) {
+-                        setState(() => _strategy = strategy);
+-                      },
+-                    ),
+-                  )
+-                  .toList(),
+-            ),
+-            const SizedBox(height: 12),
+-            DecoratedBox(
+-              decoration: BoxDecoration(
+-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+-                borderRadius: BorderRadius.circular(16),
+-                border: Border.all(color: Colors.white12),
+-              ),
+-              child: Padding(
+-                padding: const EdgeInsets.all(14),
+-                child: Row(
+-                  children: [
+-                    const Icon(Icons.tune, size: 18),
+-                    const SizedBox(width: 10),
+-                    Expanded(
+-                      child: Text(
+-                        _strategy.description,
+-                        style: Theme.of(context).textTheme.bodyMedium,
+-                      ),
++    return Padding(
++      padding: const EdgeInsets.all(22),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.stretch,
++        children: [
++          Row(
++            children: [
++              const Column(
++                crossAxisAlignment: CrossAxisAlignment.start,
++                children: [
++                  Text(
++                    'Simple mode',
++                    style:
++                        TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
++                  ),
++                  SizedBox(height: 4),
++                  Text('One button for casual users.'),
++                ],
++              ),
++              const Spacer(),
++              _StatusPill(
++                label: _connected ? 'Connected' : 'Disconnected',
++                isActive: _connected,
++              ),
++            ],
++          ),
++          const SizedBox(height: 18),
++          Expanded(
++            child: Center(
++              child: AnimatedContainer(
++                duration: const Duration(milliseconds: 180),
++                curve: Curves.easeOut,
++                width: 260,
++                height: 260,
++                decoration: BoxDecoration(
++                  shape: BoxShape.circle,
++                  gradient: LinearGradient(
++                    colors: _connected
++                        ? [
++                            scheme.primary.withOpacity(0.95),
++                            scheme.secondary.withOpacity(0.90),
++                          ]
++                        : [
++                            scheme.surfaceContainerHighest.withOpacity(0.95),
++                            scheme.surfaceContainerHighest.withOpacity(0.55),
++                          ],
++                    begin: Alignment.topLeft,
++                    end: Alignment.bottomRight,
++                  ),
++                  border: Border.all(
++                    color: _connected
++                        ? scheme.primary.withOpacity(0.35)
++                        : Colors.white12,
++                    width: 1,
++                  ),
++                  boxShadow: [
++                    BoxShadow(
++                      blurRadius: 28,
++                      spreadRadius: 1,
++                      offset: const Offset(0, 12),
++                      color: Colors.black.withOpacity(0.30),
+                     ),
+                   ],
+                 ),
+-              ),
+-            ),
+-          ],
+-        ),
++                child: Center(
++                  child: FilledButton.tonalIcon(
++                    onPressed: () {
++                      setState(() => _connected = !_connected);
++                      _emitSnapshot();
++                    },
++                    icon: Icon(_connected ? Icons.link_off : Icons.lock_open),
++                    label: Text(_connected ? 'Отключиться' : 'Подключиться'),
++                    style: FilledButton.styleFrom(
++                      padding: const EdgeInsets.symmetric(
++                        horizontal: 26,
++                        vertical: 18,
++                      ),
++                      textStyle: const TextStyle(
++                        fontSize: 18,
++                        fontWeight: FontWeight.w700,
++                      ),
++                    ),
++                  ),
++                ),
++              ),
++            ),
++          ),
++          const SizedBox(height: 18),
++          Text(
++            _serverLine(_strategy),
++            textAlign: TextAlign.center,
++            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
++          ),
++          const SizedBox(height: 4),
++          Text(
++            '${_profileLabel(_strategy)} · ${_latencyLabel(_strategy)} · 92 Мбит/с',
++            textAlign: TextAlign.center,
++            style: TextStyle(
++              fontFamily: 'Consolas',
++              fontSize: 11.5,
++              color: scheme.onSurfaceVariant,
++            ),
++          ),
++          const SizedBox(height: 18),
++          Wrap(
++            spacing: 8,
++            runSpacing: 8,
++            alignment: WrapAlignment.center,
++            children: MockData.strategies
++                .map(
++                  (strategy) => ChoiceChip(
++                    label: Text(strategy.label),
++                    selected: _strategy == strategy,
++                    onSelected: (_) {
++                      setState(() => _strategy = strategy);
++                      _emitSnapshot();
++                    },
++                  ),
++                )
++                .toList(),
++          ),
++          const SizedBox(height: 14),
++          DecoratedBox(
++            decoration: BoxDecoration(
++              color: scheme.surfaceContainerHighest,
++              borderRadius: BorderRadius.circular(16),
++              border: Border.all(color: scheme.outline),
++            ),
++            child: Padding(
++              padding: const EdgeInsets.all(14),
++              child: Row(
++                children: [
++                  const Icon(Icons.tune, size: 18),
++                  const SizedBox(width: 10),
++                  Expanded(
++                    child: Text(
++                      switch (_strategy) {
++                        ConnectionStrategy.auto => 'Traffic-based routing',
++                        ConnectionStrategy.games => 'Lowest ping',
++                        ConnectionStrategy.video => 'Least-loaded server',
++                        ConnectionStrategy.stream => 'Balanced streaming path',
++                      },
++                      style: Theme.of(context).textTheme.bodyMedium,
++                    ),
++                  ),
++                ],
++              ),
++            ),
++          ),
++          const SizedBox(height: 10),
++          Wrap(
++            spacing: 8,
++            runSpacing: 8,
++            alignment: WrapAlignment.center,
++            children: [
++              _ServerButton(label: 'Авто', ping: '41 ms', selected: _strategy == ConnectionStrategy.auto),
++              _ServerButton(label: 'Игры', ping: '29 ms', selected: _strategy == ConnectionStrategy.games),
++              _ServerButton(label: 'Видео', ping: '55 ms', selected: _strategy == ConnectionStrategy.video),
++              _ServerButton(label: 'Ещё…', ping: '', selected: false),
++            ],
++          ),
++          const SizedBox(height: 10),
++          Row(
++            mainAxisAlignment: MainAxisAlignment.center,
++            children: [
++              Icon(Icons.shield_outlined, size: 12, color: scheme.onSurfaceVariant),
++              const SizedBox(width: 6),
++              Text(
++                'Реальный IP сервера скрыт от приложения — по умолчанию',
++                style: TextStyle(
++                  fontSize: 11,
++                  color: scheme.onSurfaceVariant,
++                ),
++              ),
++            ],
++          ),
++        ],
+       ),
+     );
+   }
+@@ -195,3 +290,47 @@
+     );
+   }
+ }
++
++class _ServerButton extends StatelessWidget {
++  final String label;
++  final String ping;
++  final bool selected;
++
++  const _ServerButton({
++    required this.label,
++    required this.ping,
++    required this.selected,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++    return Container(
++      decoration: BoxDecoration(
++        color: selected ? scheme.surfaceContainerHighest : scheme.surface,
++        borderRadius: BorderRadius.circular(10),
++        border: Border.all(color: scheme.outline),
++      ),
++      child: Padding(
++        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
++        child: Row(
++          mainAxisSize: MainAxisSize.min,
++          children: [
++            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
++            if (ping.isNotEmpty) ...[
++              const SizedBox(width: 8),
++              Text(
++                ping,
++                style: TextStyle(
++                  fontSize: 10,
++                  color: scheme.primary,
++                  fontFamily: 'Consolas',
++                ),
++              ),
++            ],
++          ],
++        ),
++      ),
++    );
++  }
++}
+
+--- a/lib/features/advanced/advanced_mode_page.dart
++++ b/lib/features/advanced/advanced_mode_page.dart
+@@ -451,7 +451,7 @@
+                 Row(
+                   children: [
+                     const Expanded(
+-                      child: _TextInput(value: 'example.com'),
++                      child: _TextInput(value: 'example.com', placeholder: 'example.com'),
+                     ),
+                     const SizedBox(width: 10),
+                     FilledButton(onPressed: () {}, child: const Text('Добавить')),
+@@ -760,9 +760,11 @@
+ 
+ class _TextInput extends StatelessWidget {
+   final String value;
++  final String? placeholder;
+ 
+   const _TextInput({
+     required this.value,
++    this.placeholder,
+   });
+ 
+   @override
+@@ -815,14 +817,25 @@
+ 
+ class _ToggleDisplay extends StatelessWidget {
+   final bool enabled;
++  final String? label;
+ 
+   const _ToggleDisplay({
+     required this.enabled,
+-  });
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return Switch(value: enabled, onChanged: null);
++    this.label,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    return Row(
++      mainAxisSize: MainAxisSize.min,
++      children: [
++        if (label != null) ...[
++          Text(label!, style: const TextStyle(fontSize: 12)),
++          const SizedBox(width: 12),
++        ],
++        Switch(value: enabled, onChanged: null),
++      ],
++    );
+   }
+ }
+ 
+@@ -866,3 +879,5 @@
+     );
+   }
+ }
++
++class _Rail? // placeholder
+
+--- a/lib/features/self_hosted/self_hosted_wizard.dart
++++ b/lib/features/self_hosted/self_hosted_wizard.dart
+@@ -5,22 +5,91 @@
+ 
+   @override
+   Widget build(BuildContext context) {
+-    return const Card(
++    final scheme = Theme.of(context).colorScheme;
++
++    return Card(
+       child: Padding(
+-        padding: EdgeInsets.all(20),
++        padding: const EdgeInsets.all(20),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+-            Text(
+-              'Self-hosted wizard',
++            const Text(
++              'Self-hosted setup',
+               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+             ),
+-            SizedBox(height: 8),
+-            Text('Wizard placeholder for provisioning flow.'),
+-            SizedBox(height: 12),
+-            _StepRow(number: '1', text: 'Choose deployment type'),
+-            _StepRow(number: '2', text: 'Confirm server parameters'),
+-            _StepRow(number: '3', text: 'Generate connection profile'),
++            const SizedBox(height: 6),
++            Text(
++              'Start server setup from here. This is UI-only for now, but the flow is ready for the core service later.',
++              style: Theme.of(context).textTheme.bodyMedium,
++            ),
++            const SizedBox(height: 14),
++            Container(
++              padding: const EdgeInsets.all(12),
++              decoration: BoxDecoration(
++                color: scheme.secondary.withOpacity(0.06),
++                borderRadius: BorderRadius.circular(10),
++                border: Border.all(color: scheme.secondary.withOpacity(0.22)),
++              ),
++              child: Row(
++                children: [
++                  Icon(Icons.info_outline, color: scheme.secondary),
++                  const SizedBox(width: 10),
++                  Expanded(
++                    child: Text(
++                      'Private keys never leave the device. Configuration stays local and encrypted.',
++                      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11.5),
++                    ),
++                  ),
++                ],
++              ),
++            ),
++            const SizedBox(height: 16),
++            Row(
++              children: [
++                FilledButton.icon(
++                  onPressed: () {},
++                  icon: const Icon(Icons.play_arrow),
++                  label: const Text('Start setup'),
++                ),
++                const SizedBox(width: 12),
++                OutlinedButton.icon(
++                  onPressed: () {},
++                  icon: const Icon(Icons.description_outlined),
++                  label: const Text('Paste config'),
++                ),
++              ],
++            ),
++            const SizedBox(height: 18),
++            Wrap(
++              spacing: 8,
++              runSpacing: 8,
++              children: const [
++                _ProtocolChip(label: 'AmneziaWG'),
++                _ProtocolChip(label: 'XRay / VLESS'),
++                _ProtocolChip(label: 'WireGuard'),
++                _ProtocolChip(label: 'Hysteria2'),
++                _ProtocolChip(label: 'Custom'),
++              ],
++            ),
++            const SizedBox(height: 18),
++            _FlowCard(
++              number: '1',
++              title: 'Connect to server',
++              subtitle: 'Enter IP, SSH user, and password or key.',
++              accent: scheme.primary,
++            ),
++            _FlowCard(
++              number: '2',
++              title: 'Choose install mode',
++              subtitle: 'Automatic for quick start or manual for a single protocol.',
++              accent: scheme.secondary,
++            ),
++            _FlowCard(
++              number: '3',
++              title: 'Install protocol and generate profile',
++              subtitle: 'Create the connection and show it in the main screen.',
++              accent: scheme.tertiary,
++            ),
+           ],
+         ),
+       ),
+@@ -28,26 +97,68 @@
+   }
+ }
+ 
+-class _StepRow extends StatelessWidget {
++class _FlowCard extends StatelessWidget {
+   final String number;
+-  final String text;
++  final String title;
++  final String subtitle;
++  final Color accent;
+ 
+-  const _StepRow({
++  const _FlowCard({
+     required this.number,
+-    required this.text,
++    required this.title,
++    required this.subtitle,
++    required this.accent,
+   });
+ 
+   @override
+   Widget build(BuildContext context) {
+     return Padding(
+-      padding: EdgeInsets.only(bottom: 8),
+-      child: Row(
+-        children: [
+-          CircleAvatar(radius: 11, child: Text(number)),
+-          SizedBox(width: 10),
+-          Expanded(child: Text(text)),
+-        ],
++      padding: const EdgeInsets.only(bottom: 10),
++      child: DecoratedBox(
++        decoration: BoxDecoration(
++          color: accent.withOpacity(0.08),
++          borderRadius: BorderRadius.circular(18),
++          border: Border.all(color: accent.withOpacity(0.28)),
++        ),
++        child: Padding(
++          padding: const EdgeInsets.all(14),
++          child: Row(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              CircleAvatar(
++                radius: 13,
++                backgroundColor: accent.withOpacity(0.18),
++                child: Text(number),
++              ),
++              const SizedBox(width: 12),
++              Expanded(
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    Text(
++                      title,
++                      style: const TextStyle(fontWeight: FontWeight.w700),
++                    ),
++                    const SizedBox(height: 4),
++                    Text(subtitle),
++                  ],
++                ),
++              ),
++            ],
++          ),
++        ),
+       ),
+     );
+   }
+ }
++
++class _ProtocolChip extends StatelessWidget {
++  final String label;
++
++  const _ProtocolChip({required this.label});
++
++  @override
++  Widget build(BuildContext context) {
++    return Chip(label: Text(label));
++  }
++}

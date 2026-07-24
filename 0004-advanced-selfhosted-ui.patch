@@ -1,0 +1,652 @@
+--- a/lib/features/advanced/advanced_mode_page.dart
++++ b/lib/features/advanced/advanced_mode_page.dart
+@@ -1,62 +1,74 @@
+ import 'package:flutter/material.dart';
++import '../../core/mock/mock_data.dart';
++import '../../core/models/server_option.dart';
+ import '../logs/logs_page.dart';
+ import '../security/security_section.dart';
+ import '../self_hosted/self_hosted_wizard.dart';
+ 
+-class AdvancedModePage extends StatelessWidget {
++enum AdvancedPath { selfHosted, infrastructure }
++
++class AdvancedModePage extends StatefulWidget {
+   const AdvancedModePage({super.key});
+ 
+   @override
+-  Widget build(BuildContext context) {
++  State<AdvancedModePage> createState() => _AdvancedModePageState();
++}
++
++class _AdvancedModePageState extends State<AdvancedModePage> {
++  AdvancedPath _path = AdvancedPath.infrastructure;
++  String _selectedServerName = MockData.servers.first.name;
++
++  @override
++  Widget build(BuildContext context) {
++    final selectedServer = MockData.servers.firstWhere(
++      (server) => server.name == _selectedServerName,
++      orElse: () => MockData.servers.first,
++    );
++
+     return SingleChildScrollView(
+       child: Column(
+         crossAxisAlignment: CrossAxisAlignment.stretch,
+-        children: const [
+-          _ChoiceCards(),
+-          SizedBox(height: 16),
+-          SelfHostedWizard(),
+-          SizedBox(height: 16),
+-          SecuritySection(),
+-          SizedBox(height: 16),
+-          LogsPage(),
++        children: [
++          _HeaderCard(
++            selectedPath: _path,
++            onSelected: (path) => setState(() => _path = path),
++          ),
++          const SizedBox(height: 16),
++          if (_path == AdvancedPath.selfHosted) ...[
++            const SelfHostedWizard(),
++            const SizedBox(height: 16),
++            const _InfoCard(
++              icon: Icons.hub_outlined,
++              title: 'Self-hosted flow',
++              subtitle:
++                  'This UI starts the setup flow. Later we will connect it to the core service that provisions the server.',
++            ),
++          ] else ...[
++            _ServerPicker(
++              selectedServerName: _selectedServerName,
++              servers: MockData.servers,
++              onSelected: (name) => setState(() => _selectedServerName = name),
++            ),
++            const SizedBox(height: 16),
++            _SelectedServerSummary(server: selectedServer),
++          ],
++          const SizedBox(height: 16),
++          const SecuritySection(),
++          const SizedBox(height: 16),
++          const LogsPage(),
+         ],
+       ),
+     );
+   }
+ }
+ 
+-class _ChoiceCards extends StatelessWidget {
+-  const _ChoiceCards();
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return Row(
+-      children: const [
+-        Expanded(
+-          child: _ModeCard(
+-            title: 'Self-hosted',
+-            subtitle: 'Short setup wizard for your own server',
+-          ),
+-        ),
+-        SizedBox(width: 12),
+-        Expanded(
+-          child: _ModeCard(
+-            title: 'Our infrastructure',
+-            subtitle: 'Pick a team server and tune it manually',
+-          ),
+-        ),
+-      ],
+-    );
+-  }
+-}
+-
+-class _ModeCard extends StatelessWidget {
+-  final String title;
+-  final String subtitle;
+-
+-  const _ModeCard({
+-    required this.title,
+-    required this.subtitle,
++class _HeaderCard extends StatelessWidget {
++  final AdvancedPath selectedPath;
++  final ValueChanged<AdvancedPath> onSelected;
++
++  const _HeaderCard({
++    required this.selectedPath,
++    required this.onSelected,
+   });
+ 
+   @override
+@@ -67,20 +79,356 @@
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
++            const Text(
++              'Advanced mode',
++              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
++            ),
++            const SizedBox(height: 6),
++            Text(
++              'For users who want to choose servers, start setup flows, and fine-tune the connection.',
++              style: Theme.of(context).textTheme.bodyMedium,
++            ),
++            const SizedBox(height: 16),
++            Row(
++              children: [
++                Expanded(
++                  child: _ModeCard(
++                    title: 'Self-hosted',
++                    subtitle: 'Start server provisioning',
++                    icon: Icons.settings_remote_outlined,
++                    selected: selectedPath == AdvancedPath.selfHosted,
++                    onTap: () => onSelected(AdvancedPath.selfHosted),
++                  ),
++                ),
++                const SizedBox(width: 12),
++                Expanded(
++                  child: _ModeCard(
++                    title: 'Our infrastructure',
++                    subtitle: 'Pick one of our servers',
++                    icon: Icons.cloud_outlined,
++                    selected: selectedPath == AdvancedPath.infrastructure,
++                    onTap: () => onSelected(AdvancedPath.infrastructure),
++                  ),
++                ),
++              ],
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _ModeCard extends StatelessWidget {
++  final String title;
++  final String subtitle;
++  final IconData icon;
++  final bool selected;
++  final VoidCallback onTap;
++
++  const _ModeCard({
++    required this.title,
++    required this.subtitle,
++    required this.icon,
++    required this.selected,
++    required this.onTap,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++
++    return InkWell(
++      onTap: onTap,
++      borderRadius: BorderRadius.circular(20),
++      child: AnimatedContainer(
++        duration: const Duration(milliseconds: 180),
++        curve: Curves.easeOut,
++        padding: const EdgeInsets.all(18),
++        decoration: BoxDecoration(
++          color: selected
++              ? scheme.primary.withOpacity(0.12)
++              : scheme.surfaceContainerHighest.withOpacity(0.55),
++          borderRadius: BorderRadius.circular(20),
++          border: Border.all(
++            color: selected ? scheme.primary.withOpacity(0.35) : Colors.white12,
++          ),
++        ),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Icon(icon),
++            const SizedBox(height: 12),
+             Text(
+               title,
+               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+             ),
+-            const SizedBox(height: 8),
++            const SizedBox(height: 6),
+             Text(subtitle),
+-            const SizedBox(height: 14),
+-            const FilledButton(
+-              onPressed: null,
+-              child: Text('Open'),
+-            ),
+-          ],
+-        ),
+-      ),
+-    );
+-  }
+-}
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _ServerPicker extends StatelessWidget {
++  final String selectedServerName;
++  final List<ServerOption> servers;
++  final ValueChanged<String> onSelected;
++
++  const _ServerPicker({
++    required this.selectedServerName,
++    required this.servers,
++    required this.onSelected,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(20),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            const Text(
++              'Our infrastructure',
++              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
++            ),
++            const SizedBox(height: 6),
++            Text(
++              'Pick a server, then continue to Connect.',
++              style: Theme.of(context).textTheme.bodyMedium,
++            ),
++            const SizedBox(height: 16),
++            ...servers.map(
++              (server) => Padding(
++                padding: const EdgeInsets.only(bottom: 10),
++                child: _ServerTile(
++                  server: server,
++                  selected: server.name == selectedServerName,
++                  onTap: () => onSelected(server.name),
++                ),
++              ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _ServerTile extends StatelessWidget {
++  final ServerOption server;
++  final bool selected;
++  final VoidCallback onTap;
++
++  const _ServerTile({
++    required this.server,
++    required this.selected,
++    required this.onTap,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final scheme = Theme.of(context).colorScheme;
++
++    return InkWell(
++      onTap: onTap,
++      borderRadius: BorderRadius.circular(18),
++      child: AnimatedContainer(
++        duration: const Duration(milliseconds: 160),
++        padding: const EdgeInsets.all(14),
++        decoration: BoxDecoration(
++          color: selected
++              ? scheme.primary.withOpacity(0.10)
++              : scheme.surfaceContainerHighest.withOpacity(0.55),
++          borderRadius: BorderRadius.circular(18),
++          border: Border.all(
++            color: selected ? scheme.primary.withOpacity(0.35) : Colors.white12,
++          ),
++        ),
++        child: Row(
++          children: [
++            Icon(
++              selected ? Icons.check_circle : Icons.circle_outlined,
++              color: selected ? scheme.primary : scheme.onSurfaceVariant,
++            ),
++            const SizedBox(width: 12),
++            Expanded(
++              child: Column(
++                crossAxisAlignment: CrossAxisAlignment.start,
++                children: [
++                  Row(
++                    children: [
++                      Text(
++                        server.name,
++                        style: const TextStyle(fontWeight: FontWeight.w700),
++                      ),
++                      if (server.recommended) ...[
++                        const SizedBox(width: 8),
++                        const _Badge(label: 'Recommended'),
++                      ],
++                    ],
++                  ),
++                  const SizedBox(height: 4),
++                  Text('${server.region} • ${server.pingMs} ms'),
++                ],
++              ),
++            ),
++            FilledButton.tonal(
++              onPressed: () {},
++              child: const Text('Connect'),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _SelectedServerSummary extends StatelessWidget {
++  final ServerOption server;
++
++  const _SelectedServerSummary({required this.server});
++
++  @override
++  Widget build(BuildContext context) {
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(20),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            const Text(
++              'Selected server',
++              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
++            ),
++            const SizedBox(height: 10),
++            _StatRow(label: 'Name', value: server.name),
++            _StatRow(label: 'Region', value: server.region),
++            _StatRow(label: 'Ping', value: '${server.pingMs} ms'),
++            const SizedBox(height: 16),
++            Row(
++              children: [
++                FilledButton(
++                  onPressed: () {},
++                  child: const Text('Connect'),
++                ),
++                const SizedBox(width: 12),
++                OutlinedButton(
++                  onPressed: () {},
++                  child: const Text('Server settings'),
++                ),
++              ],
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _StatRow extends StatelessWidget {
++  final String label;
++  final String value;
++
++  const _StatRow({
++    required this.label,
++    required this.value,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    return Padding(
++      padding: const EdgeInsets.only(bottom: 6),
++      child: Row(
++        children: [
++          SizedBox(
++            width: 70,
++            child: Text(
++              label,
++              style: TextStyle(
++                color: Theme.of(context).colorScheme.onSurfaceVariant,
++              ),
++            ),
++          ),
++          Expanded(child: Text(value)),
++        ],
++      ),
++    );
++  }
++}
++
++class _InfoCard extends StatelessWidget {
++  final IconData icon;
++  final String title;
++  final String subtitle;
++
++  const _InfoCard({
++    required this.icon,
++    required this.title,
++    required this.subtitle,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(20),
++        child: Row(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Icon(icon),
++            const SizedBox(width: 12),
++            Expanded(
++              child: Column(
++                crossAxisAlignment: CrossAxisAlignment.start,
++                children: [
++                  Text(
++                    title,
++                    style: const TextStyle(
++                      fontSize: 18,
++                      fontWeight: FontWeight.w700,
++                    ),
++                  ),
++                  const SizedBox(height: 6),
++                  Text(subtitle),
++                ],
++              ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _Badge extends StatelessWidget {
++  final String label;
++
++  const _Badge({required this.label});
++
++  @override
++  Widget build(BuildContext context) {
++    return DecoratedBox(
++      decoration: BoxDecoration(
++        color: Theme.of(context).colorScheme.primary.withOpacity(0.16),
++        borderRadius: BorderRadius.circular(999),
++        border: Border.all(
++          color: Theme.of(context).colorScheme.primary.withOpacity(0.30),
++        ),
++      ),
++      child: Padding(
++        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
++        child: Text(
++          label,
++          style: TextStyle(
++            fontSize: 12,
++            color: Theme.of(context).colorScheme.primary,
++          ),
++        ),
++      ),
++    );
++  }
++}
+
+--- a/lib/features/self_hosted/self_hosted_wizard.dart
++++ b/lib/features/self_hosted/self_hosted_wizard.dart
+@@ -5,22 +5,70 @@
+ 
+   @override
+   Widget build(BuildContext context) {
+-    return const Card(
++    final scheme = Theme.of(context).colorScheme;
++
++    return Card(
+       child: Padding(
+-        padding: EdgeInsets.all(20),
++        padding: const EdgeInsets.all(20),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+-            Text(
+-              'Self-hosted wizard',
++            const Text(
++              'Self-hosted setup',
+               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+             ),
+-            SizedBox(height: 8),
+-            Text('Wizard placeholder for provisioning flow.'),
+-            SizedBox(height: 12),
+-            _StepRow(number: '1', text: 'Choose deployment type'),
+-            _StepRow(number: '2', text: 'Confirm server parameters'),
+-            _StepRow(number: '3', text: 'Generate connection profile'),
++            const SizedBox(height: 6),
++            Text(
++              'Start server setup from here. This is UI-only for now, but the flow is ready for the core service later.',
++              style: Theme.of(context).textTheme.bodyMedium,
++            ),
++            const SizedBox(height: 16),
++            Row(
++              children: [
++                FilledButton.icon(
++                  onPressed: () {},
++                  icon: const Icon(Icons.play_arrow),
++                  label: const Text('Start setup'),
++                ),
++                const SizedBox(width: 12),
++                OutlinedButton.icon(
++                  onPressed: () {},
++                  icon: const Icon(Icons.description_outlined),
++                  label: const Text('Paste config'),
++                ),
++              ],
++            ),
++            const SizedBox(height: 18),
++            Wrap(
++              spacing: 8,
++              runSpacing: 8,
++              children: const [
++                _ProtocolChip(label: 'AmneziaWG'),
++                _ProtocolChip(label: 'XRay / VLESS'),
++                _ProtocolChip(label: 'WireGuard'),
++                _ProtocolChip(label: 'Hysteria2'),
++                _ProtocolChip(label: 'Custom'),
++              ],
++            ),
++            const SizedBox(height: 18),
++            _FlowCard(
++              number: '1',
++              title: 'Connect to server',
++              subtitle: 'Enter IP, SSH user, and password or key.',
++              accent: scheme.primary,
++            ),
++            _FlowCard(
++              number: '2',
++              title: 'Choose install mode',
++              subtitle: 'Automatic for quick start or manual for a single protocol.',
++              accent: scheme.secondary,
++            ),
++            _FlowCard(
++              number: '3',
++              title: 'Install protocol and generate profile',
++              subtitle: 'Create the connection and show it in the main screen.',
++              accent: scheme.tertiary,
++            ),
+           ],
+         ),
+       ),
+@@ -28,26 +76,68 @@
+   }
+ }
+ 
+-class _StepRow extends StatelessWidget {
++class _FlowCard extends StatelessWidget {
+   final String number;
+-  final String text;
++  final String title;
++  final String subtitle;
++  final Color accent;
+ 
+-  const _StepRow({
++  const _FlowCard({
+     required this.number,
+-    required this.text,
++    required this.title,
++    required this.subtitle,
++    required this.accent,
+   });
+ 
+   @override
+   Widget build(BuildContext context) {
+     return Padding(
+-      padding: EdgeInsets.only(bottom: 8),
+-      child: Row(
+-        children: [
+-          CircleAvatar(radius: 11, child: Text(number)),
+-          SizedBox(width: 10),
+-          Expanded(child: Text(text)),
+-        ],
++      padding: const EdgeInsets.only(bottom: 10),
++      child: DecoratedBox(
++        decoration: BoxDecoration(
++          color: accent.withOpacity(0.08),
++          borderRadius: BorderRadius.circular(18),
++          border: Border.all(color: accent.withOpacity(0.28)),
++        ),
++        child: Padding(
++          padding: const EdgeInsets.all(14),
++          child: Row(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              CircleAvatar(
++                radius: 13,
++                backgroundColor: accent.withOpacity(0.18),
++                child: Text(number),
++              ),
++              const SizedBox(width: 12),
++              Expanded(
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    Text(
++                      title,
++                      style: const TextStyle(fontWeight: FontWeight.w700),
++                    ),
++                    const SizedBox(height: 4),
++                    Text(subtitle),
++                  ],
++                ),
++              ),
++            ],
++          ),
++        ),
+       ),
+     );
+   }
+ }
++
++class _ProtocolChip extends StatelessWidget {
++  final String label;
++
++  const _ProtocolChip({required this.label});
++
++  @override
++  Widget build(BuildContext context) {
++    return Chip(label: Text(label));
++  }
++}

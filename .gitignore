@@ -28,3 +28,79 @@ web/.dart_tool/
 
 assets/generated/
 node_modules/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+build/
+
+# Flutter generated
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-plugins
+.metadata
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+*.iml
+
+# VS
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# CMake
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+
+# Windows build
+windows/flutter/ephemeral/
+windows/flutter/generated_plugin_registrant.*
+windows/flutter/generated_plugins.cmake
+
+# macOS
+macos/Flutter/ephemeral/
+
+# Linux
+linux/flutter/ephemeral/
+
+# Android
+android/.gradle/
+android/local.properties
+
+# iOS
+ios/Flutter/ephemeral/
+ios/Pods/
+
+# Logs
+*.log
+
+# Temp
+*.tmp
+*.bak
+*.cache
+
+# Environment
+.env
+.env.*
+
+# Keys / certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.ovpn
+*.conf
+
+# Secrets
+secrets/
+certs/
+private/

@@ -95,9 +95,9 @@ class _FlowCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: accent.withOpacity(0.08),
+          color: accent.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: accent.withOpacity(0.28)),
+          border: Border.all(color: accent.withValues(alpha: 0.28)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -106,7 +106,7 @@ class _FlowCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 13,
-                backgroundColor: accent.withOpacity(0.18),
+                backgroundColor: accent.withValues(alpha: 0.18),
                 child: Text(number),
               ),
               const SizedBox(width: 12),

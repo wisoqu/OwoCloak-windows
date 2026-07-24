@@ -57,19 +57,19 @@ class _SimpleModePageState extends State<SimpleModePage> {
                     gradient: LinearGradient(
                       colors: _connected
                           ? [
-                              scheme.primary.withOpacity(0.95),
-                              scheme.secondary.withOpacity(0.90),
+                              scheme.primary.withValues(alpha: 0.95),
+                              scheme.secondary.withValues(alpha: 0.90),
                             ]
                           : [
-                              scheme.surfaceContainerHighest.withOpacity(0.95),
-                              scheme.surfaceContainerHighest.withOpacity(0.55),
+                              scheme.surfaceContainerHighest.withValues(alpha: 0.95),
+                              scheme.surfaceContainerHighest.withValues(alpha: 0.55),
                             ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     border: Border.all(
                       color: _connected
-                          ? scheme.primary.withOpacity(0.35)
+                          ? scheme.primary.withValues(alpha: 0.35)
                           : Colors.white12,
                       width: 1,
                     ),
@@ -78,7 +78,7 @@ class _SimpleModePageState extends State<SimpleModePage> {
                         blurRadius: 28,
                         spreadRadius: 1,
                         offset: const Offset(0, 12),
-                        color: Colors.black.withOpacity(0.30),
+                        color: Colors.black.withValues(alpha: 0.30),
                       ),
                     ],
                   ),
@@ -169,11 +169,11 @@ class _StatusPill extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: isActive
-            ? scheme.primary.withOpacity(0.14)
-            : scheme.surfaceContainerHighest.withOpacity(0.80),
+            ? scheme.primary.withValues(alpha: 0.14)
+            : scheme.surfaceContainerHighest.withValues(alpha: 0.80),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: isActive ? scheme.primary.withOpacity(0.35) : Colors.white12,
+          color: isActive ? scheme.primary.withValues(alpha: 0.35) : Colors.white12,
         ),
       ),
       child: Padding(
