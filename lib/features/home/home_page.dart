@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/models/connection_strategy.dart';
 import '../account/account_section.dart';
 import '../advanced/advanced_mode_page.dart';
 import '../simple/simple_mode_page.dart';
