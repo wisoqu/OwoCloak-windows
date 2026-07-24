@@ -1,194 +1,225 @@
 import 'package:flutter/material.dart';
-import '../../core/mock/mock_data.dart';
-import '../../core/models/connection_strategy.dart';
 
-class SimpleModePage extends StatefulWidget {
+import '../../app/owocloak_app.dart';
+import '../../core/catalog/app_catalog.dart';
+import '../../core/models/connection_strategy.dart';
+import '../../core/models/tunnel_status.dart';
+
+class SimpleModePage extends StatelessWidget {
   const SimpleModePage({super.key});
 
   @override
-  State<SimpleModePage> createState() => _SimpleModePageState();
-}
-
-class _SimpleModePageState extends State<SimpleModePage> {
-  bool _connected = false;
-  ConnectionStrategy _strategy = ConnectionStrategy.auto;
-
-  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final controller = AppControllerScope.of(context);
+    final tunnel = controller.tunnel;
+    final connected = tunnel.state == TunnelState.connected;
+    final connecting = tunnel.state == TunnelState.connecting;
+    final label = switch (tunnel.state) {
+      TunnelState.connected => 'Подключено',
+      TunnelState.connecting => 'Подключение…',
+      TunnelState.disconnecting => 'Отключение…',
+      TunnelState.error => 'Ошибка',
+      TunnelState.disconnected => 'Отключено',
+    };
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    return LayoutBuilder(
+      builder: (context, constraints) => Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 520,
+              minHeight: constraints.maxHeight - 40,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Simple mode',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                    ),
-                    SizedBox(height: 4),
-                    Text('One button for casual users.'),
-                  ],
+                _ConnectRing(
+                  connected: connected,
+                  connecting: connecting,
+                  label: label,
+                  onTap: controller.isBusy ? null : controller.toggleConnection,
                 ),
-                const Spacer(),
-                _StatusPill(
-                  label: _connected ? 'Connected' : 'Disconnected',
-                  isActive: _connected,
+                const SizedBox(height: 22),
+                Text(
+                  tunnel.server?.name ?? controller.selectedServer.name,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${tunnel.server?.region ?? controller.selectedServer.region} · '
+                  '${tunnel.pingMs ?? controller.selectedServer.pingMs} ms · '
+                  '${controller.strategy.label}',
+                  style: const TextStyle(
+                    color: Color(0xFF565D68),
+                    fontSize: 11.5,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _ServerPicker(),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: ConnectionStrategy.values
+                      .map(
+                        (value) => ChoiceChip(
+                          label: Text(value.label),
+                          selected: controller.strategy == value,
+                          onSelected: (_) => controller.setStrategy(value),
+                        ),
+                      )
+                      .toList(),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Текущий экран использует demo backend. Реальный туннель подключается через ConnectionEngine.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF565D68), fontSize: 11),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Center(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  width: 260,
-                  height: 260,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: _connected
-                          ? [
-                              scheme.primary.withValues(alpha: 0.95),
-                              scheme.secondary.withValues(alpha: 0.90),
-                            ]
-                          : [
-                              scheme.surfaceContainerHighest.withValues(alpha: 0.95),
-                              scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-                            ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    border: Border.all(
-                      color: _connected
-                          ? scheme.primary.withValues(alpha: 0.35)
-                          : Colors.white12,
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        blurRadius: 28,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 12),
-                        color: Colors.black.withValues(alpha: 0.30),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: FilledButton.tonalIcon(
-                      onPressed: () => setState(() => _connected = !_connected),
-                      icon: Icon(_connected ? Icons.link_off : Icons.lock_open),
-                      label: Text(_connected ? 'Disconnect' : 'Connect'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 26,
-                          vertical: 18,
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Connection strategy',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: MockData.strategies
-                  .map(
-                    (strategy) => ChoiceChip(
-                      label: Text(strategy.label),
-                      selected: _strategy == strategy,
-                      onSelected: (_) {
-                        setState(() => _strategy = strategy);
-                      },
-                    ),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: 12),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  children: [
-                    const Icon(Icons.tune, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _strategy.description,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _StatusPill extends StatelessWidget {
+class _ConnectRing extends StatelessWidget {
+  final bool connected;
+  final bool connecting;
   final String label;
-  final bool isActive;
+  final VoidCallback? onTap;
 
-  const _StatusPill({
+  const _ConnectRing({
+    required this.connected,
+    required this.connecting,
     required this.label,
-    required this.isActive,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: isActive
-            ? scheme.primary.withValues(alpha: 0.14)
-            : scheme.surfaceContainerHighest.withValues(alpha: 0.80),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: isActive ? scheme.primary.withValues(alpha: 0.35) : Colors.white12,
+    final accent =
+        connecting ? const Color(0xFFE8A33D) : const Color(0xFF4FD1C5);
+    return SizedBox(
+      width: 176,
+      height: 176,
+      child: CustomPaint(
+        painter: _RingPainter(active: connected, color: accent),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Material(
+            color: const Color(0xFF101318),
+            shape: const CircleBorder(
+              side: BorderSide(color: Color(0xFF262B33)),
+            ),
+            child: InkWell(
+              onTap: onTap,
+              customBorder: const CircleBorder(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    connected ? Icons.power : Icons.power_settings_new,
+                    size: 30,
+                    color: connected || connecting
+                        ? accent
+                        : const Color(0xFF565D68),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: connected ? Colors.white : accent,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  final bool active;
+  final Color color;
+
+  const _RingPainter({required this.active, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.width / 2 - 2;
+    final track = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = const Color(0xFF262B33);
+    canvas.drawCircle(center, radius, track);
+    if (active) {
+      final fill = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 3
+        ..color = color;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -1.5708,
+        6.2832,
+        false,
+        fill,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RingPainter oldDelegate) =>
+      oldDelegate.active != active || oldDelegate.color != color;
+}
+
+class _ServerPicker extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final controller = AppControllerScope.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF15181D),
+        border: Border.all(color: const Color(0xFF262B33)),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isActive ? Icons.circle : Icons.circle_outlined,
-              size: 10,
-              color: isActive ? scheme.primary : scheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 8),
-            Text(label),
-          ],
+        padding: const EdgeInsets.all(5),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 3,
+          children: AppCatalog.servers.map((server) {
+            final selected = server.name == controller.selectedServer.name;
+            return TextButton(
+              onPressed: controller.isBusy || controller.isConnected
+                  ? null
+                  : () => controller.selectServer(server),
+              style: TextButton.styleFrom(
+                backgroundColor: selected ? const Color(0xFF1B1F26) : null,
+                foregroundColor:
+                    selected ? Colors.white : const Color(0xFF8A919C),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7),
+                ),
+              ),
+              child: Text('${server.name}  ${server.pingMs}ms'),
+            );
+          }).toList(),
         ),
       ),
     );

@@ -1,143 +1,173 @@
 import 'package:flutter/material.dart';
 
-class SelfHostedWizard extends StatelessWidget {
+class SelfHostedWizard extends StatefulWidget {
   const SelfHostedWizard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Self-hosted setup',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Start server setup from here. This is UI-only for now, but the flow is ready for the core service later.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                FilledButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Start setup'),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.description_outlined),
-                  label: const Text('Paste config'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: const [
-                _ProtocolChip(label: 'AmneziaWG'),
-                _ProtocolChip(label: 'XRay / VLESS'),
-                _ProtocolChip(label: 'WireGuard'),
-                _ProtocolChip(label: 'Hysteria2'),
-                _ProtocolChip(label: 'Custom'),
-              ],
-            ),
-            const SizedBox(height: 18),
-            _FlowCard(
-              number: '1',
-              title: 'Connect to server',
-              subtitle: 'Enter IP, SSH user, and password or key.',
-              accent: scheme.primary,
-            ),
-            _FlowCard(
-              number: '2',
-              title: 'Choose install mode',
-              subtitle: 'Automatic for quick start or manual for a single protocol.',
-              accent: scheme.secondary,
-            ),
-            _FlowCard(
-              number: '3',
-              title: 'Install protocol and generate profile',
-              subtitle: 'Create the connection and show it in the main screen.',
-              accent: scheme.tertiary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  State<SelfHostedWizard> createState() => _SelfHostedWizardState();
 }
 
-class _FlowCard extends StatelessWidget {
-  final String number;
-  final String title;
-  final String subtitle;
-  final Color accent;
+class _SelfHostedWizardState extends State<SelfHostedWizard> {
+  final _addressController = TextEditingController(text: '203.0.113.42:443');
+  String _protocol = 'OwONaive';
 
-  const _FlowCard({
-    required this.number,
-    required this.title,
-    required this.subtitle,
-    required this.accent,
-  });
+  @override
+  void dispose() {
+    _addressController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: accent.withValues(alpha: 0.28)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _Header(
+            title: 'Свой сервер',
+            hint: 'self-hosted · контроль инфраструктуры'),
+        _Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              CircleAvatar(
-                radius: 13,
-                backgroundColor: accent.withValues(alpha: 0.18),
-                child: Text(number),
+              const _CardTitle(title: 'Подключение к серверу'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _addressController,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                decoration: const InputDecoration(
+                    labelText: 'Адрес сервера', hintText: 'IP или домен VPS'),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(subtitle),
-                  ],
-                ),
+              const SizedBox(height: 10),
+              const TextField(
+                obscureText: true,
+                style: TextStyle(fontFamily: 'monospace', fontSize: 12),
+                decoration: InputDecoration(
+                    labelText: 'Ключ клиента',
+                    hintText: 'хранится только локально'),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                      child: FilledButton.icon(
+                          onPressed: null,
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text('Проверить сервер'))),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                      onPressed: null,
+                      icon: const Icon(Icons.content_paste),
+                      label: const Text('Импорт .conf')),
+                ],
               ),
             ],
           ),
         ),
-      ),
+        _Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _CardTitle(title: 'Протокол'),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: ['OwONaive', 'WireGuard', 'VLESS / Reality']
+                    .map((protocol) => ChoiceChip(
+                        label: Text(protocol),
+                        selected: _protocol == protocol,
+                        onSelected: (_) =>
+                            setState(() => _protocol = protocol)))
+                    .toList(),
+              ),
+              const SizedBox(height: 12),
+              Text('Выбран: $_protocol',
+                  style: const TextStyle(
+                      color: Color(0xFF8A919C),
+                      fontSize: 11,
+                      fontFamily: 'monospace')),
+            ],
+          ),
+        ),
+        _Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _CardTitle(title: 'Безопасность ключей'),
+              const SizedBox(height: 8),
+              const Text(
+                  'Приватный ключ не покидает устройство. Сначала проверьте публичный ключ сервера, затем создайте локальный профиль.',
+                  style: TextStyle(
+                      color: Color(0xFF8A919C), fontSize: 11.5, height: 1.5)),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                    child: Text('Публичный ключ сервера: a3f9…8bd2',
+                        style: const TextStyle(
+                            color: Color(0xFF4FD1C5),
+                            fontFamily: 'monospace',
+                            fontSize: 11))),
+                OutlinedButton(onPressed: null, child: const Text('Показать'))
+              ]),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _ProtocolChip extends StatelessWidget {
-  final String label;
+class _Header extends StatelessWidget {
+  final String title;
+  final String hint;
 
-  const _ProtocolChip({required this.label});
+  const _Header({required this.title, required this.hint});
 
   @override
-  Widget build(BuildContext context) {
-    return Chip(label: Text(label));
-  }
+  Widget build(BuildContext context) => Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Row(children: [
+        Text(title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Spacer(),
+        Text(hint,
+            style: const TextStyle(
+                color: Color(0xFF565D68),
+                fontSize: 11,
+                fontFamily: 'monospace'))
+      ]));
+}
+
+class _CardTitle extends StatelessWidget {
+  final String title;
+
+  const _CardTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) => Row(children: [
+        Container(width: 3, height: 12, color: const Color(0xFFE8A33D)),
+        const SizedBox(width: 7),
+        Text(title.toUpperCase(),
+            style: const TextStyle(
+                color: Color(0xFF8A919C),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: .7))
+      ]);
+}
+
+class _Panel extends StatelessWidget {
+  final Widget child;
+
+  const _Panel({required this.child});
+
+  @override
+  Widget build(BuildContext context) => Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: const Color(0xFF15181D),
+          border: Border.all(color: const Color(0xFF262B33)),
+          borderRadius: BorderRadius.circular(10)),
+      child: child);
 }
